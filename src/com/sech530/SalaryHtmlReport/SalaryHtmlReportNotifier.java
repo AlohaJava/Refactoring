@@ -17,30 +17,30 @@ public class SalaryHtmlReportNotifier {
     private final String HOST;
     private final String SUBJECT;
 
-    public SalaryHtmlReportNotifier(Connection databaseConnection, String HOST, String SUBJECT){
+    public SalaryHtmlReportNotifier(Connection databaseConnection, String SUBJECT, String HOST){
         this.connection = databaseConnection;
         this.HOST=HOST;
         this.SUBJECT=SUBJECT;
     }
     public SalaryHtmlReportNotifier(Connection databaseConnection) {
-        this(databaseConnection,"mail.google.com","Monthly department salary report");
+        this(databaseConnection,"Monthly department salary report","mail.google.com");
     }
 
-    private PreparedStatement prepareRequest(String departmentId, LocalDate dateFrom, LocalDate dateTo) throws SQLException {
+    private PreparedStatement prepareRequest(SalaryReportRequestData salaryReportRequestData) throws SQLException {
         PreparedStatement ps = connection.prepareStatement("select emp.id as emp_id, emp.name as amp_name, sum(salary) as salary from employee emp left join" +
                 "salary_payments sp on emp.id = sp.employee_id where emp.department_id = ? and" +
                 " sp.date >= ? and sp.date <= ? group by emp.id, emp.name");
         // inject parameters to sql
-        ps.setString(0, departmentId);
-        ps.setDate(1, new java.sql.Date(dateFrom.toEpochDay()));
-        ps.setDate(2, new java.sql.Date(dateTo.toEpochDay()));
+        ps.setString(0, salaryReportRequestData.getDepartmentId());
+        ps.setDate(1, new java.sql.Date(salaryReportRequestData.getDateFrom().toEpochDay()));
+        ps.setDate(2, new java.sql.Date(salaryReportRequestData.getDateTo().toEpochDay()));
         return ps;
     }
 
-    public void generateAndSendHtmlSalaryReport(String departmentId, LocalDate dateFrom, LocalDate dateTo, String recipients) {
+    public void generateAndSendHtmlSalaryReport(SalaryReportRequestData salaryReportRequestData) {
         try {
             // prepare statement with sql
-            PreparedStatement ps = prepareRequest(departmentId,dateFrom,dateTo);
+            PreparedStatement ps = prepareRequest(salaryReportRequestData);
             ResultSet results = ps.executeQuery();
             // create a resulting html
             String emailBodyHtml = new HtmlMailBuilder(results).build();
